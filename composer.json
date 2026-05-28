@@ -1,0 +1,21 @@
+{
+    "name": "gdmexico/module-google-tag-manager",
+    "description": "Modulo personalizado de Google Tag Manager para Magento 2",
+    "type": "magento2-module",
+    "license": [
+        "proprietary"
+    ],
+    "version": "1.0.0",
+    "require": {
+        "php": ">=7.4",
+        "magento/framework": "*"
+    },
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "GDMexico\\GoogleTagManager\\": ""
+        }
+    }
+}

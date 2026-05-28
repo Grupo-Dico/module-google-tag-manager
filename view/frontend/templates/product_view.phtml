@@ -1,0 +1,127 @@
+<?php
+/** @var \GDMexico\GoogleTagManager\Block\Gtm $block */
+if (!$block->isEnabled() || !$block->getHelper()->isTrackProductViewEnabled()) {
+    return;
+}
+
+$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+$registry = $objectManager->get(\Magento\Framework\Registry::class);
+$product = $registry->registry('current_product');
+
+if (!$product) {
+    return;
+}
+
+// Obtener categoría desde el campo personalizado feed_category
+$feedCategory = null;
+$categoryFromCustomField = null;
+
+try {
+        $feedCategoryValue = $product->getData('feed_category');
+
+    if ($feedCategoryValue) {
+        $feedCategory = $feedCategoryValue;
+
+        // Obtener información de la categoría real si existe
+        $categoryFactory = $objectManager->get(\Magento\Catalog\Model\CategoryFactory::class);
+        $categoryCollection = $objectManager->get(\Magento\Catalog\Model\ResourceModel\Category\CollectionFactory::class);
+
+        // Buscar categoría por nombre si feedCategory contiene el nombre
+        $categoryByName = $categoryCollection->create()
+            ->addAttributeToFilter('name', $feedCategory)
+            ->addFieldToFilter('is_active', 1)
+            ->setPageSize(1)
+            ->getFirstItem();
+
+        if ($categoryByName && $categoryByName->getId()) {
+            $categoryFromCustomField = $categoryByName;
+        }
+    }
+
+} catch (\Exception $e) {
+    // Log error but continue
+    $feedCategory = null;
+}
+
+// También obtener las categorías normales como respaldo
+$allCategories = [];
+$categoryWithSmallestId = null;
+
+try {
+    $allCategoryCollection = $product->getCategoryCollection()
+        ->addAttributeToSelect(['name', 'entity_id', 'is_active'])
+        ->setOrder('entity_id', 'ASC');
+
+    foreach ($allCategoryCollection as $cat) {
+        $allCategories[] = [
+            'id' => $cat->getId(),
+            'name' => $cat->getName(),
+            'is_active' => $cat->getIsActive()
+        ];
+    }
+
+    // Obtener categoría con ID más pequeño como respaldo
+    $activeCategoryCollection = $product->getCategoryCollection()
+        ->addAttributeToSelect(['name', 'entity_id'])
+        ->addFieldToFilter('is_active', 1)
+        ->setOrder('entity_id', 'ASC');
+
+    if ($activeCategoryCollection->getSize() > 0) {
+        $categoryWithSmallestId = $activeCategoryCollection->getFirstItem();
+    }
+
+} catch (\Exception $e) {
+    // Continue without categories
+}
+
+// Construir los datos del producto para GA4
+$productData = [
+    'item_id' => $product->getSku(),
+    'item_name' => $product->getName(),
+    'currency' => $block->getDataLayer()->getCurrentCurrency(),
+    'price' => (float)$product->getFinalPrice(),
+    'quantity' => 1
+];
+
+// Priorizar categoría del campo personalizado
+if ($feedCategory) {
+    $productData['item_category'] = $feedCategory;
+
+    // Si encontramos la categoría real, agregar más datos
+    if ($categoryFromCustomField) {
+        $productData['item_list_name'] = $categoryFromCustomField->getName();
+        $productData['item_list_id'] = (string)$categoryFromCustomField->getId();
+    } else {
+        $productData['item_list_name'] = $feedCategory;
+        $productData['item_list_id'] = 'custom-feed-category';
+    }
+}
+// Si no hay campo personalizado, usar categoría con ID más pequeño
+elseif ($categoryWithSmallestId) {
+    $productData['item_category'] = $categoryWithSmallestId->getName();
+    $productData['item_list_name'] = $categoryWithSmallestId->getName();
+    $productData['item_list_id'] = (string)$categoryWithSmallestId->getId();
+}
+
+// Agregar marca si existe
+$brand = $product->getAttributeText('manufacturer');
+if ($brand) {
+    $productData['item_brand'] = $brand;
+}
+
+$currencyCode = $block->getDataLayer()->getCurrentCurrency();
+?>
+
+<script>
+    window.dataLayer = window.dataLayer || [];
+
+    // Evento GA4: view_item
+    window.dataLayer.push({
+        'event': 'view_item',
+        'ecommerce': {
+            'currency': '<?= $block->escapeJs($currencyCode) ?>',
+            'value': <?= $productData['price'] ?>,
+            'items': [<?= json_encode($productData, JSON_UNESCAPED_UNICODE) ?>]
+        }
+    });
+</script>

@@ -1,0 +1,47 @@
+<?php
+/** @var \GDMexico\GoogleTagManager\Block\Gtm $block */
+if (!$block->isEnabled() || !$block->getHelper()->isTrackAddToCartEnabled()) {
+    return;
+}
+
+$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+$checkoutSession = $objectManager->get(\Magento\Checkout\Model\Session::class);
+$quote = $checkoutSession->getQuote();
+
+if (!$quote || !$quote->getId()) {
+    return;
+}
+
+$items = [];
+$totalValue = 0;
+
+foreach ($quote->getAllVisibleItems() as $item) {
+    $product = $item->getProduct();
+    if ($product) {
+        $itemData = [
+            'item_id' => $product->getSku(),
+            'item_name' => $product->getName(),
+            'currency' => $quote->getQuoteCurrencyCode(),
+            'price' => (float)$item->getPrice(),
+            'quantity' => (int)$item->getQty(),
+        ];
+        $items[] = $itemData;
+        $totalValue += $itemData['price'] * $itemData['quantity'];
+    }
+}
+
+if (empty($items)) {
+    return;
+}
+?>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+        'event': 'view_cart',
+        'ecommerce': {
+            'currency': '<?= $block->escapeJs($quote->getQuoteCurrencyCode()) ?>',
+            'value': <?= $totalValue ?>,
+            'items': <?= json_encode($items) ?>
+        }
+    });
+</script>

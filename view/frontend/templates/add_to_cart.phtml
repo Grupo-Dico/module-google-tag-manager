@@ -1,0 +1,88 @@
+<?php
+/** @var \GDMexico\GoogleTagManager\Block\Gtm $block */
+if (!$block->isEnabled() || !$block->getHelper()->isTrackAddToCartEnabled()) {
+    return;
+}
+
+$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+
+// Obtener las 3 sesiones diferentes
+$session = $objectManager->get(\Magento\Framework\Session\SessionManagerInterface::class);
+$customerSession = $objectManager->get(\Magento\Customer\Model\Session::class);
+$checkoutSession = $objectManager->get(\Magento\Checkout\Model\Session::class);
+
+// Buscar datos en las 3 sesiones hasta encontrar uno
+$gtmData = null;
+$sessionType = '';
+
+// 1. Sesión estándar
+$gtmData = $session->getGtmAddToCart();
+if ($gtmData) {
+    $sessionType = 'standard session';
+}
+
+// 2. Customer session
+if (!$gtmData) {
+    $gtmData = $customerSession->getGtmAddToCart();
+    if ($gtmData) {
+        $sessionType = 'customer session';
+    }
+}
+
+// 3. Checkout session
+if (!$gtmData) {
+    $gtmData = $checkoutSession->getGtmAddToCart();
+    if ($gtmData) {
+        $sessionType = 'checkout session';
+    }
+}
+?>
+
+<?php $debug = $block->getHelper()->isDebugEnabled(); ?>
+<script>
+    <?php if ($debug): ?>
+    console.log('=== DEBUG ADD TO CART TEMPLATE ===');
+    console.log('GTM Enabled:', <?= $block->isEnabled() ? 'true' : 'false' ?>);
+    console.log('Track Add to Cart Enabled:', <?= $block->getHelper()->isTrackAddToCartEnabled() ? 'true' : 'false' ?>);
+    <?php endif; ?>
+
+    <?php if ($gtmData): ?>
+    <?php if ($debug): ?>
+    console.log('✅ Datos add_to_cart encontrados en: <?= $block->escapeJs($sessionType) ?>');
+    console.log('Raw data: <?= $block->escapeJs($gtmData) ?>');
+    <?php endif; ?>
+
+    try {
+        var addToCartEvent = JSON.parse('<?= $block->escapeJs($gtmData) ?>');
+        <?php if ($debug): ?>
+        console.log('Parsed data:', addToCartEvent);
+        <?php endif; ?>
+
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push(addToCartEvent);
+
+        <?php if ($debug): ?>
+        console.log('✅ Evento add_to_cart enviado al dataLayer');
+        <?php endif; ?>
+
+    } catch (e) {
+        <?php if ($debug): ?>
+        console.error('❌ Error parsing add_to_cart data:', e);
+        <?php endif; ?>
+    }
+
+    <?php
+    // Limpiar de TODAS las sesiones después de usar
+    $session->unsGtmAddToCart();
+    $customerSession->unsGtmAddToCart();
+    $checkoutSession->unsGtmAddToCart();
+    ?>
+    <?php elseif ($debug): ?>
+    console.log('❌ NO hay datos de add_to_cart en ninguna sesión');
+    console.log('Verificado en: standard session, customer session, checkout session');
+    <?php endif; ?>
+
+    <?php if ($debug): ?>
+    console.log('=== FIN DEBUG ADD TO CART ===');
+    <?php endif; ?>
+</script>

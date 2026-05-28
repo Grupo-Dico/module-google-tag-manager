@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <!--
+        Cuando se guarda Stores > Configuration > GD México > Google Tag Manager,
+        limpia automáticamente los cachés afectados por el toggle de Debug
+        para que el cambio surta efecto inmediato sin intervención manual.
+    -->
+    <event name="admin_system_config_changed_section_google_tag_manager">
+        <observer name="gdmexico_gtm_config_changed_clean_cache"
+                  instance="GDMexico\GoogleTagManager\Observer\ConfigChangedObserver"/>
+    </event>
+</config>

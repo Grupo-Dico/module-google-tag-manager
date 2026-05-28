@@ -1,0 +1,229 @@
+<?php
+/** @var \GDMexico\GoogleTagManager\Block\Gtm $block */
+if (!$block->isEnabled() || !$block->getHelper()->isTrackCategoryViewEnabled()) {
+    return;
+}
+
+$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+$registry = $objectManager->get(\Magento\Framework\Registry::class);
+$category = $registry->registry('current_category');
+
+if (!$category) {
+    return;
+}
+
+// Reuso de la coleccion ya cargada por el listado de categoria (Magento\Catalog\Block\Product\ListProduct).
+// Evita disparar una segunda query a Elasticsearch via Smile\ElasticsuiteCatalog\...\Fulltext\Collection
+// (regresion reportada bajo "Text fields are not optimised..." y "No alive nodes" en el cluster).
+$layout    = $block->getLayout();
+$listBlock = $layout->getBlock('category.products.list')
+    ?: $layout->getBlock('search_result_list');
+
+$productCollection = null;
+if ($listBlock && method_exists($listBlock, 'getLoadedProductCollection')) {
+    $productCollection = $listBlock->getLoadedProductCollection();
+} elseif ($listBlock && method_exists($listBlock, 'getCollection')) {
+    $productCollection = $listBlock->getCollection();
+}
+
+if (!$productCollection) {
+    // Fallback defensivo: si por timing del layout la coleccion del listado aun no esta
+    // disponible (raro fuera de Luma estandar), NO instanciamos una segunda coleccion
+    // contra Elasticsearch para no degradar el cluster. El view_item_list se reportara
+    // en la siguiente carga cuando el listado este montado.
+    return;
+}
+
+// El toolbar se usa SOLO en modo lectura para conocer la pagina/limite actuales.
+// NO llamamos setCollection sobre el toolbar: eso pisaba la coleccion real del listado.
+$toolbar = $layout->getBlock('product_list_toolbar');
+
+$categoryData = $block->getDataLayer()->getCategoryData($category);
+$items = [];
+$index = 1;
+
+if ($toolbar && $toolbar->getCurrentPage() > 1) {
+    $index = (($toolbar->getCurrentPage() - 1) * $toolbar->getLimit()) + 1;
+}
+
+// Construir el array de items con los productos de la categoría
+foreach ($productCollection as $product) {
+    $finalPrice = $product->getFinalPrice();
+
+    // Formato GA4 para items
+    $item = [
+        'item_id' => $product->getSku(),
+        'item_name' => $product->getName(),
+        'currency' => $block->getDataLayer()->getCurrentCurrency(),
+        'price' => (float)$finalPrice,
+        'item_category' => $category->getName(),
+        'index' => $index
+    ];
+
+    // Agregar marca si existe
+    $brand = $product->getAttributeText('manufacturer');
+    if ($brand) {
+        $item['item_brand'] = $brand;
+    }
+
+    $items[] = $item;
+    $index++;
+}
+
+if (empty($items)) {
+    return;
+}
+
+// Obtener código de moneda de la tienda
+$currencyCode = $block->getDataLayer()->getCurrentCurrency();
+?>
+
+<script>
+    window.dataLayer = window.dataLayer || [];
+
+    // Evento GA4: view_item_list
+    window.dataLayer.push({
+        'event': 'view_item_list',
+        'ecommerce': {
+            'item_list_id': '<?= $block->escapeJs($categoryData['item_list_id']) ?>',
+            'item_list_name': '<?= $block->escapeJs($categoryData['item_list_name']) ?>',
+            'currency': '<?= $block->escapeJs($currencyCode) ?>',
+            'items': <?= json_encode($items, JSON_UNESCAPED_UNICODE) ?>
+        }
+    });
+
+    // Evento GA4: select_item - Se dispara cuando el usuario hace clic en un producto
+    (function() {
+        var itemsData = <?= json_encode($items, JSON_UNESCAPED_UNICODE) ?>;
+        var itemListId = '<?= $block->escapeJs($categoryData['item_list_id']) ?>';
+        var itemListName = '<?= $block->escapeJs($categoryData['item_list_name']) ?>';
+        var currency = '<?= $block->escapeJs($currencyCode) ?>';
+
+        // Crear un mapa de SKU a item para búsqueda rápida
+        var itemsMap = {};
+        itemsData.forEach(function(item, index) {
+            itemsMap[item.item_id] = item;
+        });
+
+        // Función para extraer SKU de la URL del producto
+        function extractSkuFromUrl(url) {
+            if (!url) return null;
+            
+            // Patrones comunes de URLs de productos en Magento
+            var patterns = [
+                /\/product\/([^\/\?]+)/,
+                /\/([^\/\?]+)\.html/,
+                /\/catalog\/product\/view\/id\/(\d+)/,
+                /\/[^\/]+-([^\/\?]+)\.html/
+            ];
+            
+            for (var i = 0; i < patterns.length; i++) {
+                var match = url.match(patterns[i]);
+                if (match && match[1]) {
+                    return match[1];
+                }
+            }
+            
+            return null;
+        }
+
+        // Función para encontrar el item por SKU o URL
+        function findItemBySkuOrUrl(sku, url) {
+            if (sku && itemsMap[sku]) {
+                return itemsMap[sku];
+            }
+            
+            // Si no encontramos por SKU, intentar extraer de la URL
+            if (url) {
+                var extractedSku = extractSkuFromUrl(url);
+                if (extractedSku && itemsMap[extractedSku]) {
+                    return itemsMap[extractedSku];
+                }
+            }
+            
+            return null;
+        }
+
+        // Función para obtener el SKU del producto desde el DOM
+        function getProductSku(element) {
+            // Buscar en atributos data-*
+            var sku = element.getAttribute('data-product-sku') || 
+                     element.getAttribute('data-sku') ||
+                     element.getAttribute('data-item-id');
+            
+            if (sku) return sku;
+            
+            // Buscar en el elemento padre (product-item)
+            var productItem = element.closest('.product-item, [data-product-id], .product-item-info, .item');
+            if (productItem) {
+                sku = productItem.getAttribute('data-product-sku') ||
+                     productItem.getAttribute('data-sku') ||
+                     productItem.getAttribute('data-item-id');
+                if (sku) return sku;
+                
+                // Buscar en elementos hijos
+                var skuElement = productItem.querySelector('[data-product-sku], [data-sku], [data-item-id]');
+                if (skuElement) {
+                    return skuElement.getAttribute('data-product-sku') ||
+                           skuElement.getAttribute('data-sku') ||
+                           skuElement.getAttribute('data-item-id');
+                }
+            }
+            
+            return null;
+        }
+
+        // Capturar clics en enlaces de productos
+        document.addEventListener('click', function(e) {
+            var target = e.target;
+            var productLink = null;
+
+            // Buscar el enlace del producto (puede estar en diferentes elementos)
+            while (target && target !== document.body) {
+                if (target.tagName === 'A' && target.href && 
+                    (target.classList.contains('product-item-link') || 
+                     target.classList.contains('product-item-photo') ||
+                     target.href.indexOf('/product/') !== -1 ||
+                     target.href.match(/\.html$/))) {
+                    productLink = target;
+                    break;
+                }
+                target = target.parentElement;
+            }
+
+            if (!productLink) {
+                return;
+            }
+
+            var href = productLink.href;
+            
+            // Obtener SKU del elemento
+            var productSku = getProductSku(productLink);
+            
+            // Si no encontramos SKU, intentar extraerlo de la URL
+            if (!productSku) {
+                productSku = extractSkuFromUrl(href);
+            }
+
+            if (productSku) {
+                var selectedItem = findItemBySkuOrUrl(productSku, href);
+                
+                if (selectedItem) {
+                    // Enviar evento select_item
+                    window.dataLayer.push({
+                        'event': 'select_item',
+                        'ecommerce': {
+                            'item_list_id': itemListId,
+                            'item_list_name': itemListName,
+                            'currency': currency,
+                            'items': [selectedItem]
+                        }
+                    });
+                    <?php if ($block->getHelper()->isDebugEnabled()): ?>
+                    console.log('GTM: Evento select_item enviado para producto:', productSku, selectedItem);
+                    <?php endif; ?>
+                }
+            }
+        }, true); // Usar capture phase para capturar antes de la navegación
+    })();
+</script>

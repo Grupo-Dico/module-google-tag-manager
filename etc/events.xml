@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="checkout_cart_product_add_after">
+        <observer name="gdmexico_gtm_add_to_cart" instance="GDMexico\GoogleTagManager\Observer\AddToCartObserver" />
+    </event>
+    <event name="checkout_onepage_controller_success_action">
+        <observer name="gdmexico_gtm_purchase_success" instance="GDMexico\GoogleTagManager\Observer\CheckoutSuccessObserver" />
+    </event>
+    <event name="controller_action_predispatch">
+        <observer name="gdmexico_gtm_custom_success_page" instance="GDMexico\GoogleTagManager\Observer\CustomSuccessPageObserver" />
+    </event>
+</config>

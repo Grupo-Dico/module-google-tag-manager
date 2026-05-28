@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <google_tag_manager>
+            <general>
+                <enabled>0</enabled>
+                <gtm_id></gtm_id>
+            </general>
+            <events>
+                <track_page_view>1</track_page_view>
+                <track_product_view>1</track_product_view>
+                <track_category_view>1</track_category_view>
+                <track_add_to_cart>1</track_add_to_cart>
+                <track_purchase>1</track_purchase>
+            </events>
+            <debug>
+                <enabled>0</enabled>
+            </debug>
+        </google_tag_manager>
+    </default>
+</config>

@@ -1,0 +1,187 @@
+<?php
+/** @var \GDMexico\GoogleTagManager\Block\Gtm $block */
+if (!$block->isEnabled() || !$block->getGtmId()) {
+    return;
+}
+$gtmId = $block->getGtmId();
+
+// Obtener datos de add_to_cart de MÚLTIPLES sesiones
+$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+$session = $objectManager->get(\Magento\Framework\Session\SessionManagerInterface::class);
+$customerSession = $objectManager->get(\Magento\Customer\Model\Session::class);
+$checkoutSession = $objectManager->get(\Magento\Checkout\Model\Session::class);
+
+// Buscar en las 3 sesiones hasta encontrar datos
+$addToCartData = $session->getGtmAddToCart() ?:
+    $customerSession->getGtmAddToCart() ?:
+        $checkoutSession->getGtmAddToCart();
+
+// Datos de purchase en sesión (solo en páginas de success; evita variable indefinida en PHP 8+)
+$purchaseData = null;
+if ($block->isPurchaseOutputAllowedForRequest()) {
+    $purchaseData = $session->getGtmPurchase() ?:
+        $customerSession->getGtmPurchase() ?:
+            $checkoutSession->getGtmPurchase();
+}
+
+// Método 2: Si no hay datos, intentar generarlos desde la orden en checkout session (solo success / custom success)
+if ($block->isPurchaseOutputAllowedForRequest() && !$purchaseData) {
+    try {
+        $order = $checkoutSession->getLastRealOrder();
+        if ($order && $order->getId()) {
+            // Intentar generar los datos de purchase
+            $generated = $block->generatePurchaseData($order);
+            if ($generated) {
+                // Volver a buscar después de generar - forzar lectura directa
+                $purchaseData = $session->getGtmPurchase();
+                if (!$purchaseData) {
+                    $purchaseData = $customerSession->getGtmPurchase();
+                }
+                if (!$purchaseData) {
+                    $purchaseData = $checkoutSession->getGtmPurchase();
+                }
+            }
+        }
+    } catch (\Exception $e) {
+        // Silenciar errores
+    }
+}
+
+// Método 3: Si aún no hay datos, intentar obtener la orden desde el parámetro URL (solo success)
+if ($block->isPurchaseOutputAllowedForRequest() && !$purchaseData) {
+    try {
+        $request = $objectManager->get(\Magento\Framework\App\RequestInterface::class);
+        $orderParam = $request->getParam('order');
+        if ($orderParam) {
+            // Limpiar el order ID
+            $orderParam = preg_replace('/[?&].*$/', '', trim($orderParam));
+            
+            // Cargar la orden por increment ID
+            $orderRepository = $objectManager->get(\Magento\Sales\Api\OrderRepositoryInterface::class);
+            $searchCriteriaBuilder = $objectManager->get(\Magento\Framework\Api\SearchCriteriaBuilder::class);
+            $searchCriteria = $searchCriteriaBuilder
+                ->addFilter('increment_id', $orderParam)
+                ->create();
+            
+            $orders = $orderRepository->getList($searchCriteria)->getItems();
+            if (!empty($orders)) {
+                $order = array_shift($orders);
+                if ($order && $order->getId()) {
+                    // Generar los datos de purchase
+                    $generated = $block->generatePurchaseData($order);
+                    if ($generated) {
+                        // Forzar sincronización de sesiones y volver a buscar
+                        // Intentar múltiples veces con pequeña pausa
+                        for ($i = 0; $i < 3; $i++) {
+                            $purchaseData = $session->getGtmPurchase();
+                            if ($purchaseData) break;
+                            $purchaseData = $customerSession->getGtmPurchase();
+                            if ($purchaseData) break;
+                            $purchaseData = $checkoutSession->getGtmPurchase();
+                            if ($purchaseData) break;
+                            if ($i < 2) usleep(100000);
+                        }
+                    }
+                }
+            }
+        }
+    } catch (\Exception $e) {
+        // Silenciar errores
+    }
+}
+?>
+<!-- Google Tag Manager -->
+<script>
+    (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+            new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','<?= $block->escapeJs($gtmId) ?>');
+</script>
+<!-- End Google Tag Manager -->
+
+<!-- Google Tag Manager (noscript) -->
+<noscript>
+    <iframe src="https://www.googletagmanager.com/ns.html?id=<?= $block->escapeHtmlAttr($gtmId) ?>"
+            height="0" width="0" style="display:none;visibility:hidden"></iframe>
+</noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+<!-- EVENTOS GTM -->
+<script>
+    window.dataLayer = window.dataLayer || [];
+
+    <?php if ($addToCartData): ?>
+    try {
+        var addToCartEvent = JSON.parse('<?= $block->escapeJs($addToCartData) ?>');
+        window.dataLayer.push(addToCartEvent);
+    } catch (e) {
+        <?php if ($block->getHelper()->isDebugEnabled()): ?>
+        console.error('GTM Error parsing add_to_cart data:', e);
+        <?php endif; ?>
+    }
+
+    <?php
+    // Limpiar de TODAS las sesiones después de usar
+    $session->unsGtmAddToCart();
+    $customerSession->unsGtmAddToCart();
+    $checkoutSession->unsGtmAddToCart();
+    ?>
+    <?php endif; ?>
+
+    <?php if ($purchaseData): ?>
+    try {
+        var purchaseEvent = JSON.parse('<?= $block->escapeJs($purchaseData) ?>');
+        (function(ev) {
+            var tid = ev && ev.ecommerce && ev.ecommerce.transaction_id;
+            if (tid) {
+                try {
+                    if (window.sessionStorage) {
+                        if (window.sessionStorage.getItem('ga4_purchase_sent_' + String(tid))) {
+                            return;
+                        }
+                    }
+                } catch (ignored) {}
+            }
+            window.dataLayer.push(ev);
+            if (tid) {
+                try {
+                    if (window.sessionStorage) {
+                        window.sessionStorage.setItem('ga4_purchase_sent_' + String(tid), '1');
+                    }
+                } catch (ignored) {}
+            }
+        })(purchaseEvent);
+    } catch (e) {
+        <?php if ($block->getHelper()->isDebugEnabled()): ?>
+        console.error('GTM Error parsing purchase data:', e);
+        <?php endif; ?>
+    }
+
+    <?php
+    // Limpiar datos de purchase de TODAS las sesiones
+    $session->unsGtmPurchase();
+    $customerSession->unsGtmPurchase();
+    $checkoutSession->unsGtmPurchase();
+    ?>
+    <?php endif; ?>
+</script>
+
+<!-- Mover script al head dinámicamente -->
+<script>
+    (function() {
+        var scripts = document.getElementsByTagName('script');
+        var gtmScript = null;
+
+        for (var i = 0; i < scripts.length; i++) {
+            if (scripts[i].src && scripts[i].src.indexOf('googletagmanager.com/gtm.js') > -1) {
+                gtmScript = scripts[i];
+                break;
+            }
+        }
+
+        if (gtmScript && gtmScript.parentNode !== document.head) {
+            document.head.appendChild(gtmScript);
+        }
+    })();
+</script>
