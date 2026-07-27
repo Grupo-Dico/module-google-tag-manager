@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <!--
+            Se agrega después de search.result para reutilizar la colección
+            ya cargada por Magento o Smile ElasticSuite.
+        -->
+        <referenceContainer name="content">
+            <block class="GDMexico\GoogleTagManager\Block\Search"
+                   name="gtm.search.view"
+                   template="GDMexico_GoogleTagManager::search_view.phtml"
+                   after="search.result"
+                   cacheable="false"/>
+        </referenceContainer>
+    </body>
+</page>
