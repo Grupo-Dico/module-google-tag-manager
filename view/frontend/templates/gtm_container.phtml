@@ -4,7 +4,8 @@ if (!$block->isEnabled() || !$block->getGtmId()) {
     return;
 }
 $gtmId = $block->getGtmId();
-
+$gatewayEnabled = $block->isGatewayEnabled();
+$gatewayPath = $block->getGatewayPath();
 // Obtener datos de add_to_cart de MÚLTIPLES sesiones
 $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
 $session = $objectManager->get(\Magento\Framework\Session\SessionManagerInterface::class);
@@ -92,10 +93,27 @@ if ($block->isPurchaseOutputAllowedForRequest() && !$purchaseData) {
 ?>
 <!-- Google Tag Manager -->
 <script>
-    (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-            new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    (function(w,d,s,l,i){
+        w[l]=w[l]||[];
+        w[l].push({
+            'gtm.start': new Date().getTime(),
+            event:'gtm.js'
+        });
+
+        var f=d.getElementsByTagName(s)[0],
+            j=d.createElement(s),
+            dl=l!='dataLayer'?'&l='+l:'';
+
+        j.async=true;
+
+        <?php if ($gatewayEnabled): ?>
+        j.src='<?= $block->escapeJs($gatewayPath) ?>?id='+i+dl;
+        <?php else: ?>
+        j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
+        <?php endif; ?>
+
+        f.parentNode.insertBefore(j,f);
+
     })(window,document,'script','dataLayer','<?= $block->escapeJs($gtmId) ?>');
 </script>
 <!-- End Google Tag Manager -->
@@ -167,21 +185,3 @@ if ($block->isPurchaseOutputAllowedForRequest() && !$purchaseData) {
     <?php endif; ?>
 </script>
 
-<!-- Mover script al head dinámicamente -->
-<script>
-    (function() {
-        var scripts = document.getElementsByTagName('script');
-        var gtmScript = null;
-
-        for (var i = 0; i < scripts.length; i++) {
-            if (scripts[i].src && scripts[i].src.indexOf('googletagmanager.com/gtm.js') > -1) {
-                gtmScript = scripts[i];
-                break;
-            }
-        }
-
-        if (gtmScript && gtmScript.parentNode !== document.head) {
-            document.head.appendChild(gtmScript);
-        }
-    })();
-</script>

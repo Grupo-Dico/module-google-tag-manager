@@ -5,66 +5,226 @@
         <tab id="gdmexico" translate="label" sortOrder="300">
             <label>GD México</label>
         </tab>
-        <section id="google_tag_manager" translate="label" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+
+        <section id="google_tag_manager"
+                 translate="label"
+                 sortOrder="20"
+                 showInDefault="1"
+                 showInWebsite="1"
+                 showInStore="1">
+
             <label>Google Tag Manager</label>
             <tab>gdmexico</tab>
             <resource>GDMexico_GoogleTagManager::config</resource>
-            <group id="general" translate="label" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+
+            <!-- Configuración general -->
+            <group id="general"
+                   translate="label"
+                   sortOrder="10"
+                   showInDefault="1"
+                   showInWebsite="1"
+                   showInStore="1">
+
                 <label>Configuración General</label>
-                <field id="enabled" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+
+                <field id="enabled"
+                       translate="label"
+                       type="select"
+                       sortOrder="10"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="1">
+
                     <label>Habilitar Google Tag Manager</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="gtm_id" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+
+                <field id="gtm_id"
+                       translate="label"
+                       type="text"
+                       sortOrder="20"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="1">
+
                     <label>ID del Contenedor GTM</label>
                     <comment>Ingresa tu ID de contenedor GTM (ej: GTM-XXXXXXX)</comment>
+
                     <depends>
                         <field id="enabled">1</field>
                     </depends>
+
                     <validate>required-entry</validate>
                 </field>
             </group>
-            <group id="events" translate="label" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+
+            <!-- Google Tag Gateway -->
+            <group id="gateway"
+                   translate="label"
+                   sortOrder="15"
+                   showInDefault="1"
+                   showInWebsite="1"
+                   showInStore="1">
+
+                <label>Google Tag Gateway</label>
+
+                <field id="enabled"
+                       translate="label comment"
+                       type="select"
+                       sortOrder="10"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="1">
+
+                    <label>Habilitar Google Tag Gateway</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+
+                    <comment>
+                        Utiliza un measurement path first-party para cargar Google Tag Manager.
+                        Activar únicamente cuando el proxy de Google Tag Gateway esté configurado.
+                    </comment>
+                </field>
+
+                <field id="path"
+                       translate="label comment"
+                       type="text"
+                       sortOrder="20"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="1">
+
+                    <label>Measurement Path</label>
+
+                    <comment>
+                        Ruta first-party utilizada por Google Tag Gateway. Ejemplo: /metrics/
+                    </comment>
+
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+            </group>
+
+            <!-- Eventos -->
+            <group id="events"
+                   translate="label"
+                   sortOrder="20"
+                   showInDefault="1"
+                   showInWebsite="1"
+                   showInStore="1">
+
                 <label>Configuración de Eventos</label>
-                <field id="track_page_view" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+
+                <field id="track_page_view"
+                       translate="label"
+                       type="select"
+                       sortOrder="10"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="1">
+
                     <label>Rastrear Vista de Página</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <comment>Enviar eventos de page_view automáticamente</comment>
                 </field>
-                <field id="track_product_view" translate="label" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+
+                <field id="track_product_view"
+                       translate="label"
+                       type="select"
+                       sortOrder="20"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="1">
+
                     <label>Rastrear Vista de Producto</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <comment>Enviar eventos view_item en páginas de producto</comment>
                 </field>
-                <field id="track_category_view" translate="label" type="select" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+
+                <field id="track_category_view"
+                       translate="label"
+                       type="select"
+                       sortOrder="30"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="1">
+
                     <label>Rastrear Vista de Categoría</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <comment>Enviar eventos view_item_list en páginas de categoría</comment>
                 </field>
-                <field id="track_search" translate="label" type="select" sortOrder="35" showInDefault="1" showInWebsite="1" showInStore="1">
+
+                <field id="track_search"
+                       translate="label"
+                       type="select"
+                       sortOrder="35"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="1">
+
                     <label>Rastrear búsquedas</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <comment>Enviar el evento search con los productos mostrados en resultados</comment>
                 </field>
-                <field id="track_add_to_cart" translate="label" type="select" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+
+                <field id="track_add_to_cart"
+                       translate="label"
+                       type="select"
+                       sortOrder="40"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="1">
+
                     <label>Rastrear Agregar al Carrito</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <comment>Enviar eventos add_to_cart</comment>
                 </field>
-                <field id="track_purchase" translate="label" type="select" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1">
+
+                <field id="track_purchase"
+                       translate="label"
+                       type="select"
+                       sortOrder="50"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="1">
+
                     <label>Rastrear Compras</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <comment>Enviar eventos purchase en página de éxito</comment>
                 </field>
             </group>
-            <group id="debug" translate="label" sortOrder="90" showInDefault="1" showInWebsite="1" showInStore="1">
+
+            <!-- Debug -->
+            <group id="debug"
+                   translate="label"
+                   sortOrder="90"
+                   showInDefault="1"
+                   showInWebsite="1"
+                   showInStore="1">
+
                 <label>Debug / Logging</label>
-                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+
+                <field id="enabled"
+                       translate="label comment"
+                       type="select"
+                       sortOrder="10"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="1">
+
                     <label>Habilitar Logging</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <comment><![CDATA[Cuando está en <strong>Sí</strong>: registra los eventos del módulo en <code>var/log/system.log</code> y emite mensajes <code>console.*</code> en el frontend.<br/>Cuando está en <strong>No</strong>: silencia todo el logging del módulo (recomendado en producción).]]></comment>
+
+                    <comment><![CDATA[
+                        Cuando está en <strong>Sí</strong>: registra los eventos del módulo en
+                        <code>var/log/system.log</code> y emite mensajes <code>console.*</code>
+                        en el frontend.<br/>
+                        Cuando está en <strong>No</strong>: silencia todo el logging del módulo
+                        (recomendado en producción).
+                    ]]></comment>
                 </field>
             </group>
+
         </section>
     </system>
 </config>

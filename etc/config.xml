@@ -7,6 +7,10 @@
                 <enabled>0</enabled>
                 <gtm_id></gtm_id>
             </general>
+            <gateway>
+                <enabled>0</enabled>
+                <path>/metrics/</path>
+            </gateway>
             <events>
                 <track_page_view>1</track_page_view>
                 <track_product_view>1</track_product_view>

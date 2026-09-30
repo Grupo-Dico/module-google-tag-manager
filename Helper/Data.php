@@ -16,6 +16,8 @@ class Data extends AbstractHelper
     const XML_PATH_TRACK_ADD_TO_CART = 'google_tag_manager/events/track_add_to_cart';
     const XML_PATH_TRACK_PURCHASE = 'google_tag_manager/events/track_purchase';
     const XML_PATH_DEBUG_ENABLED = 'google_tag_manager/debug/enabled';
+    const XML_PATH_GATEWAY_ENABLED = 'google_tag_manager/gateway/enabled';
+    const XML_PATH_GATEWAY_PATH = 'google_tag_manager/gateway/path';
 
     public function __construct(Context $context)
     {
@@ -107,5 +109,36 @@ class Data extends AbstractHelper
             ScopeInterface::SCOPE_STORE,
             $storeId
         );
+    }
+    /**
+     * Indica si Google Tag Gateway está habilitado.
+     */
+    public function isGatewayEnabled($storeId = null): bool
+    {
+        return $this->scopeConfig->isSetFlag(
+            self::XML_PATH_GATEWAY_ENABLED,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+    }
+
+    /**
+     * Obtiene el measurement path configurado para Google Tag Gateway.
+     */
+    public function getGatewayPath($storeId = null): string
+    {
+        $path = (string)$this->scopeConfig->getValue(
+            self::XML_PATH_GATEWAY_PATH,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+
+        $path = trim($path);
+
+        if ($path === '') {
+            return '/metrics/';
+        }
+
+        return '/' . trim($path, '/') . '/';
     }
 }

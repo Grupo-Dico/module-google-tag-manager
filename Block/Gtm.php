@@ -33,6 +33,15 @@ class Gtm extends Template
     {
         return $this->helper->getGtmId();
     }
+    public function isGatewayEnabled(): bool
+    {
+        return $this->helper->isGatewayEnabled();
+    }
+
+    public function getGatewayPath(): string
+    {
+        return $this->helper->getGatewayPath();
+    }
 
     public function getDataLayer(): DataLayer
     {
