@@ -14,6 +14,7 @@ class Data extends AbstractHelper
     const XML_PATH_TRACK_CATEGORY_VIEW = 'google_tag_manager/events/track_category_view';
     const XML_PATH_TRACK_SEARCH = 'google_tag_manager/events/track_search';
     const XML_PATH_TRACK_ADD_TO_CART = 'google_tag_manager/events/track_add_to_cart';
+    const XML_PATH_TRACK_ADD_PAYMENT_INFO = 'google_tag_manager/events/track_add_payment_info';
     const XML_PATH_TRACK_PURCHASE = 'google_tag_manager/events/track_purchase';
     const XML_PATH_DEBUG_ENABLED = 'google_tag_manager/debug/enabled';
     const XML_PATH_GATEWAY_ENABLED = 'google_tag_manager/gateway/enabled';
@@ -93,6 +94,15 @@ class Data extends AbstractHelper
     {
         return $this->scopeConfig->isSetFlag(
             self::XML_PATH_TRACK_PURCHASE,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+    }
+
+    public function isTrackAddPaymentInfoEnabled($storeId = null): bool
+    {
+        return $this->scopeConfig->isSetFlag(
+            self::XML_PATH_TRACK_ADD_PAYMENT_INFO,
             ScopeInterface::SCOPE_STORE,
             $storeId
         );

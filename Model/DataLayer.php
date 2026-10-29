@@ -111,6 +111,61 @@ class DataLayer
     }
 
     /**
+     * Construir el bloque ecommerce (items + totales) de un quote para GA4.
+     *
+     * Reutiliza el mismo detalle de item que begin_checkout (item_id, item_name,
+     * price, quantity, item_category, item_brand) para mantener consistencia
+     * entre los eventos del embudo (begin_checkout / add_payment_info).
+     *
+     * @param \Magento\Quote\Model\Quote $quote
+     * @return array<string, mixed>
+     */
+    public function getQuoteEcommerceData($quote): array
+    {
+        $items = [];
+        $totalValue = 0.0;
+        $currency = (string)$quote->getQuoteCurrencyCode();
+
+        foreach ($quote->getAllVisibleItems() as $item) {
+            $product = $item->getProduct();
+            if (!$product) {
+                continue;
+            }
+
+            $price = (float)$item->getPrice();
+            $qty = (int)$item->getQty();
+
+            $itemData = [
+                'item_id' => $product->getSku(),
+                'item_name' => $product->getName(),
+                'currency' => $currency,
+                'price' => $price,
+                'quantity' => $qty,
+            ];
+
+            $categoryName = $this->getProductCategoryWithSmallestId($product);
+            if ($categoryName) {
+                $itemData['item_category'] = $categoryName;
+            }
+
+            $brand = $product->getAttributeText('manufacturer');
+            if ($brand) {
+                $itemData['item_brand'] = $brand;
+            }
+
+            $items[] = $itemData;
+            $totalValue += $price * $qty;
+        }
+
+        return [
+            'currency' => $currency,
+            'value' => $totalValue,
+            'coupon' => (string)($quote->getCouponCode() ?: ''),
+            'items' => $items,
+        ];
+    }
+
+    /**
      * Obtiene los datos de la orden formateados para GA4
      *
      * @param Order $order

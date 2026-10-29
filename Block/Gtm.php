@@ -53,6 +53,11 @@ class Gtm extends Template
         return $this->helper;
     }
 
+    public function isTrackAddPaymentInfoEnabled(): bool
+    {
+        return $this->helper->isTrackAddPaymentInfoEnabled();
+    }
+
     /**
      * Solo enviar purchase al dataLayer en páginas de confirmación de pedido.
      * Evita disparar purchase en /checkout/cart u otras vistas que cargan el mismo bloque GTM vía default.xml.

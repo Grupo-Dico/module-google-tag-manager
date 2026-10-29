@@ -180,6 +180,19 @@
                     <comment>Enviar eventos add_to_cart</comment>
                 </field>
 
+                <field id="track_add_payment_info"
+                       translate="label"
+                       type="select"
+                       sortOrder="45"
+                       showInDefault="1"
+                       showInWebsite="1"
+                       showInStore="1">
+
+                    <label>Rastrear Información de Pago</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Enviar el evento add_payment_info al seleccionar el método de pago en el checkout</comment>
+                </field>
+
                 <field id="track_purchase"
                        translate="label"
                        type="select"
