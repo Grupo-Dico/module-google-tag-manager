@@ -1,0 +1,24 @@
+<?php
+/**
+ * Inicializa el componente JS que emite el evento add_payment_info en el
+ * checkout cuando el usuario selecciona un metodo de pago.
+ *
+ * @var \GDMexico\GoogleTagManager\Block\Gtm $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+if (!$block->isEnabled() || !$block->isTrackAddPaymentInfoEnabled()) {
+    return;
+}
+
+$jsConfig = [
+    'debug' => $block->getHelper()->isDebugEnabled(),
+];
+?>
+<script type="text/x-magento-init">
+    {
+        "*": {
+            "GDMexico_GoogleTagManager/js/ga4-add-payment-info": <?= /* @noEscape */ json_encode($jsConfig, JSON_UNESCAPED_UNICODE) ?>
+        }
+    }
+</script>

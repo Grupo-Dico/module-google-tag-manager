@@ -26,6 +26,11 @@
             <argument name="logger" xsi:type="object">GDMexico\GoogleTagManager\Logger\Logger</argument>
         </arguments>
     </type>
+    <type name="GDMexico\GoogleTagManager\Controller\Ajax\PaymentInfo">
+        <arguments>
+            <argument name="logger" xsi:type="object">GDMexico\GoogleTagManager\Logger\Logger</argument>
+        </arguments>
+    </type>
     <type name="GDMexico\GoogleTagManager\Model\DataLayer">
         <arguments>
             <argument name="logger" xsi:type="object">GDMexico\GoogleTagManager\Logger\Logger</argument>

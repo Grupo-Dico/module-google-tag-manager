@@ -7,6 +7,10 @@
                    name="gtm.begin.checkout"
                    template="GDMexico_GoogleTagManager::begin_checkout.phtml"
                    after="-"/>
+            <block class="GDMexico\GoogleTagManager\Block\Gtm"
+                   name="gtm.add.payment.info"
+                   template="GDMexico_GoogleTagManager::add_payment_info.phtml"
+                   after="gtm.begin.checkout"/>
         </referenceContainer>
     </body>
 </page>

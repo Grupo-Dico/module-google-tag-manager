@@ -17,6 +17,7 @@
                 <track_category_view>1</track_category_view>
                 <track_search>1</track_search>
                 <track_add_to_cart>1</track_add_to_cart>
+                <track_add_payment_info>1</track_add_payment_info>
                 <track_purchase>1</track_purchase>
             </events>
             <debug>
