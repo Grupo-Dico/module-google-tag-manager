@@ -108,6 +108,12 @@ class AddToCartObserver implements ObserverInterface
 
             $this->logger->info('GTM: Producto final: ' . $product->getSku() . ', Cantidad final: ' . $qty);
 
+            // URL del producto (PDP) capturada en el momento del add-to-cart.
+            // Necesaria para que GTM/Pinterest registren la URL del producto y no
+            // la del carrito/checkout, ya que el push al dataLayer ocurre después
+            // del redirect. Aplica a "Agregar al carrito" y a "Comprar ahora".
+            $pageLocation = $this->resolveProductUrl($product, $request);
+
             // Obtener categoría desde campo personalizado feed-category
             $feedCategory = null;
             $feedCategory = (string)($product->getData('feed_category') ?: '');
@@ -152,6 +158,13 @@ class AddToCartObserver implements ObserverInterface
                 ]
             ];
 
+            // Exponer la URL del PDP a nivel raíz del evento para que el tag de
+            // Pinterest en GTM la use como page_location en lugar de la URL del
+            // navegador (que a esta altura ya es la del carrito/checkout).
+            if ($pageLocation !== '') {
+                $gtmData['page_location'] = $pageLocation;
+            }
+
             $this->logger->info('GTM: Datos finales creados: ' . json_encode($gtmData));
 
             $gtmDataJson = json_encode($gtmData, JSON_UNESCAPED_UNICODE);
@@ -165,5 +178,38 @@ class AddToCartObserver implements ObserverInterface
             $this->logger->error('GTM AddToCart Error: ' . $e->getMessage());
             $this->logger->error('GTM AddToCart Stack trace: ' . $e->getTraceAsString());
         }
+    }
+
+    /**
+     * Resolver la URL del producto (PDP) agregada al carrito.
+     *
+     * Usa la URL canónica del producto como fuente principal, ya que corresponde
+     * exactamente al PDP del producto agregado tanto en "Agregar al carrito"
+     * como en "Comprar ahora". Si no estuviera disponible, cae al Referer del
+     * request (la página desde la que se envió el formulario de add-to-cart).
+     *
+     * @param \Magento\Catalog\Model\Product $product
+     * @param \Magento\Framework\App\RequestInterface|null $request
+     * @return string
+     */
+    private function resolveProductUrl($product, $request): string
+    {
+        try {
+            $url = (string)$product->getProductUrl();
+            if ($url !== '') {
+                return $url;
+            }
+        } catch (\Exception $e) {
+            $this->logger->error('GTM: No se pudo obtener getProductUrl: ' . $e->getMessage());
+        }
+
+        if ($request !== null && method_exists($request, 'getServer')) {
+            $referer = (string)$request->getServer('HTTP_REFERER', '');
+            if ($referer !== '') {
+                return $referer;
+            }
+        }
+
+        return '';
     }
 }
