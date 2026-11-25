@@ -8,5 +8,10 @@
                    template="GDMexico_GoogleTagManager::gtm_container.phtml"
                    before="-"/>
         </referenceContainer>
+        <referenceContainer name="page.bottom">
+            <block class="GDMexico\GoogleTagManager\Block\Gtm"
+                   name="gtm.add.to.cart.ajax"
+                   template="GDMexico_GoogleTagManager::add_to_cart_ajax.phtml"/>
+        </referenceContainer>
     </body>
 </page>

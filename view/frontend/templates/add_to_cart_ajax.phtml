@@ -1,0 +1,23 @@
+<?php
+/**
+ * Inicializa el componente JS que emite add_to_cart cuando el producto se agrega
+ * por AJAX sin redirección al carrito.
+ *
+ * @var \GDMexico\GoogleTagManager\Block\Gtm $block
+ */
+
+if (!$block->isEnabled() || !$block->getHelper()->isTrackAddToCartEnabled()) {
+    return;
+}
+
+$jsConfig = [
+    'debug' => $block->getHelper()->isDebugEnabled(),
+];
+?>
+<script type="text/x-magento-init">
+    {
+        "*": {
+            "GDMexico_GoogleTagManager/js/ga4-add-to-cart-ajax": <?= /* @noEscape */ json_encode($jsConfig, JSON_UNESCAPED_UNICODE) ?>
+        }
+    }
+</script>
